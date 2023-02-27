@@ -1,0 +1,139 @@
+Task 1
+======
+1.)Create a proxy with no target
+
+
+2.)Security
+--> apikey verification should be from headers
+
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<VerifyAPIKey async="false" continueOnError="false" enabled="true" name="Verify-API-Key-1">
+    <DisplayName>Verify API Key-1</DisplayName>
+    <Properties/>
+    <APIKey ref="request.header.apikey"/>
+</VerifyAPIKey>
+
+
+--> Access control policy allow only respective developer IP address
+
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AccessControl async="false" continueOnError="false" enabled="true" name="Access-Control-1">
+    <DisplayName>Access Control-1</DisplayName>
+    <Properties/>
+    <IPRules noRuleMatchAction="DENY">
+        <MatchRule action="ALLOW">
+            <SourceAddress mask="32">183.82.121.225</SourceAddress>
+        </MatchRule>
+    </IPRules>
+</AccessControl>
+
+
+--> Spike Arrest policy allow 5 requests per min(Take spike value from KVM Policy 5pm)
+
+create kvm --
+
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<KeyValueMapOperations async="false" continueOnError="false" enabled="true" name="Key-Value-Map-Operations-1" mapIdentifier="SRE-KVM-1">
+    <DisplayName>Key Value Map Operations-1</DisplayName>
+    <Properties/>
+    <Get assignTo="Spike Arrest" index="1">
+        <Key>
+            <Parameter>Spike Arrest</Parameter>
+        </Key>
+    </Get>
+    <Scope>environment</Scope>
+</KeyValueMapOperations>
+
+ addd extect variable - JSON payload <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ExtractVariables async="false" continueOnError="false" enabled="true" name="Extract-Variables-1">
+    <DisplayName>Extract Variables-1</DisplayName>
+    <Properties/>
+    <JSONPayload>
+        <Variable name="NLSLanguage">
+            <JSONPath>$.PROCESS_ORDER_Input.RESTHeader.NLSLanguage</JSONPath>
+        </Variable>
+        <Variable name="BOOKED_FLAG">
+            <JSONPath>$.PROCESS_ORDER_Input.InputParameters.P_HEADER_REC.BOOKED_FLAG</JSONPath>
+        </Variable>
+    </JSONPayload>
+</ExtractVariables>
+
+
+--> Use below request payload as request data
+
+{
+  "PROCESS_ORDER_Input": {
+    "RESTHeader": {
+      "Responsibility": "ORDER_MGMT_SUPER_USER",
+      "RespApplication": "ONT",
+      "SecurityGroup": "STANDARD",
+      "NLSLanguage": "AMERICAN",
+      "Org_Id": "204"
+    },
+    "InputParameters": {
+      "P_API_VERSION_NUMBER": "1.0",
+      "P_INIT_MSG_LIST": "T",
+      "P_RETURN_VALUES": "T",
+      "P_ACTION_COMMIT": "T",
+      "P_HEADER_REC": {
+        "BOOKED_FLAG": "N",
+        "ORDER_TYPE_ID": "1430",
+        "ORG_ID": "204",
+        "PAYMENT_TERM_ID": "4",
+        "PRICE_LIST_ID": "1000",
+        "SOLD_TO_ORG_ID": "1002",
+        "TRANSACTIONAL_CURR_CODE": "USD",
+        "OPERATION": "CREATE"
+      },
+      "P_LINE_TBL": {
+        "P_LINE_TBL_ITEM": {
+          "INVENTORY_ITEM_ID": "149",
+          "LINE_TYPE_ID": "1427",
+          "ORDERED_QUANTITY": "1",
+          "PAYMENT_TERM_ID": "4",
+          "PRICE_LIST_ID": "1000",
+          "UNIT_LIST_PRICE": "12.55",
+          "UNIT_SELLING_PRICE": "12.55",
+          "OPERATION": "CREATE"
+        }
+      },
+      "P_RTRIM_DATA": "n"
+    }
+  }
+}
+
+--> using Extract variable policy extract request fields
+Request fields
+==============
+NLSLanguage
+BOOKED_FLAG
+
+--> JSON TO XML Conversion (Convert the request data from JSON to XML)
+
+Response side
+=============
+--> Using assign message policy mock the response
+
+Response Payload
+================
+{
+  "OutputParameters" : {
+    "X_RETURN_STATUS" : "S",
+    "X_MESSAGES" : {
+      "X_MESSAGES_ITEM" : [ {
+        "MESSAGE_TEXT" : " Debug File: "
+      } ]
+    },
+    "X_HEADER_REC" : {
+      "ORDER_NUMBER" : 123
+    }
+  }
+}
+
+Response Extract Variable Policy
+================================
+X_RETURN_STATUS
+ORDER_NUMBER
